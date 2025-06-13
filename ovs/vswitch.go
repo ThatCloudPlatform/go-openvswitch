@@ -56,6 +56,13 @@ func (v *VSwitchService) AddPort(bridge string, port string) error {
 	return err
 }
 
+func (v *VSwitchService) AddPortWithOptions(bridge string, port string, options InterfaceOptions) error {
+	args := []string{"--may-exist", "add-port", bridge, port}
+	args = append(args, options.slice()...)
+	_, err := v.exec(args...)
+	return err
+}
+
 // DeleteBridge detaches a bridge from Open vSwitch.  The bridge may or may
 // not already exist.
 func (v *VSwitchService) DeleteBridge(bridge string) error {
@@ -274,6 +281,20 @@ type InterfaceOptions struct {
 	// tunneled traffic leaving this interface. Optionally it could be set to
 	// "flow" which expects the flow to set tunnel ID.
 	Key string
+
+	// DPDKDevArgs can be populated when the interface is a dpdk interface type.
+	// It specifies the DPDK device arguments for the interface.
+	// format: "dpdk-devargs=0000:01:00.0"
+	DPDKDevArgs string
+
+	// VhostServerPath can be populated when the interface is a dpdk vhostuserclient interface type.
+	// It specifies the vhost-server-path option for the interface.
+	// format: "vhost-server-path=/var/run/vhostuserclient/vhost-user-client-1"
+	VhostServerPath string
+
+	// Options specifies additional a to be set on the interface.
+	// format: ["option1=value1", "option2=value2", ...]
+	Options []string
 }
 
 // slice creates a string slice containing any non-zero option values from the
@@ -313,6 +334,18 @@ func (i InterfaceOptions) slice() []string {
 
 	if i.Key != "" {
 		s = append(s, fmt.Sprintf("options:key=%s", i.Key))
+	}
+
+	if i.DPDKDevArgs != "" {
+		s = append(s, fmt.Sprintf("options:dpdk-devargs=%s", i.DPDKDevArgs))
+	}
+
+	if i.VhostServerPath != "" {
+		s = append(s, fmt.Sprintf("options:vhost-server-path=%s", i.VhostServerPath))
+	}
+
+	if len(i.Options) > 0 {
+		s = append(s, fmt.Sprintf("options=%s", strings.Join(i.Options, ",")))
 	}
 
 	return s

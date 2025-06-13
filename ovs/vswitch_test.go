@@ -764,7 +764,7 @@ func TestBridgeOptions_slice(t *testing.T) {
 }
 
 func TestInterfaceOptions_slice(t *testing.T) {
-	var tests = []struct {
+	tests := []struct {
 		desc string
 		i    InterfaceOptions
 		out  []string
@@ -842,6 +842,28 @@ func TestInterfaceOptions_slice(t *testing.T) {
 			},
 			out: []string{
 				"ingress_policing_burst=0",
+			},
+		},
+		{
+			desc: "dpdk pf interface with devargs",
+			i: InterfaceOptions{
+				Type:        InterfaceTypeDPDK,
+				DPDKDevArgs: "0000:00:10.0",
+			},
+			out: []string{
+				"type=dpdk",
+				"options:dpdk-devargs=0000:00:10.0",
+			},
+		},
+		{
+			desc: "dpdk vhostuserclient interface with vhost-server-path",
+			i: InterfaceOptions{
+				Type:            InterfaceTypeDPDKVhostUserClient,
+				VhostServerPath: "/var/run/vhostuserclient/vhost-user-client-1",
+			},
+			out: []string{
+				"type=dpdkvhostuserclient",
+				"options:vhost-server-path=/var/run/vhostuserclient/vhost-user-client-1",
 			},
 		},
 		{
