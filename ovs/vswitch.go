@@ -50,6 +50,14 @@ func (v *VSwitchService) AddBridge(bridge string) error {
 	_, err := v.exec("--may-exist", "add-br", bridge)
 	return err
 }
+
+func (v *VSwitchService) AddBridgeWithOptions(bridge string, options BridgeOptions) error {
+	args := []string{"--may-exist", "add-br", bridge}
+	args = append(args, options.slice()...)
+	_, err := v.exec(args...)
+	return err
+}
+
 // AddBond attaches a bond to a bridge on Open vSwitch.  The ports may or may
 // not already exist.
 func (v *VSwitchService) AddBond(bridge string, bond string, ports ...string) error {
@@ -232,6 +240,10 @@ func (v *VSwitchSetService) Bridge(bridge string, options BridgeOptions) error {
 type BridgeOptions struct {
 	// Protocols specifies the OpenFlow protocols the bridge should use.
 	Protocols []string
+
+	// Options specifies additional options to be set on the bridge.
+	// format: ["option1=value1", "option2=value2", ...]
+	Options []string
 }
 
 // slice creates a string slice containing any non-zero option values from the
