@@ -722,7 +722,7 @@ func TestClientVSwitchSudoOK(t *testing.T) {
 }
 
 func TestBridgeOptions_slice(t *testing.T) {
-	var tests = []struct {
+	tests := []struct {
 		desc string
 		o    BridgeOptions
 		out  []string
@@ -750,6 +750,105 @@ func TestBridgeOptions_slice(t *testing.T) {
 				},
 			},
 			out: []string{"protocols=OpenFlow10,OpenFlow11,OpenFlow12,OpenFlow13,OpenFlow14,OpenFlow15"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			if want, got := tt.out, tt.o.slice(); !reflect.DeepEqual(want, got) {
+				t.Fatalf("unexpected slices:\n- want: %v\n-  got: %v",
+					want, got)
+			}
+		})
+	}
+}
+
+func TestBondOptions_slice(t *testing.T) {
+	tests := []struct {
+		desc string
+		o    BondOptions
+		out  []string
+	}{
+		{
+			desc: "no options",
+		},
+		{
+			desc: "only BondMode",
+			o: BondOptions{
+				BondMode: "balance-slb",
+			},
+			out: []string{"bond_mode=balance-slb"},
+		},
+		{
+			desc: "only LACP",
+			o: BondOptions{
+				LACP: "active",
+			},
+			out: []string{"lacp=active"},
+		},
+		{
+			desc: "only LACPTime",
+			o: BondOptions{
+				LACPTime: "fast",
+			},
+			out: []string{"other_config:lacp-time=fast"},
+		},
+		{
+			desc: "only LACPFallbackAB",
+			o: BondOptions{
+				LACPFallbackAB: "true",
+			},
+			out: []string{"other_config:lacp-fallback-ab=true"},
+		},
+		{
+			desc: "only Members",
+			o: BondOptions{
+				Members: map[string]InterfaceOptions{
+					"dpdk0": {
+						Type:        InterfaceTypeDPDK,
+						DPDKDevArgs: "0000:01:00.0",
+					},
+					"dpdk1": {
+						Type:        InterfaceTypeDPDK,
+						DPDKDevArgs: "0000:01:00.1",
+					},
+				},
+			},
+			out: []string{
+				"dpdk0",
+				"dpdk1",
+				"-- set Interface dpdk0 type=dpdk options:dpdk-devargs=0000:01:00.0",
+				"-- set Interface dpdk1 type=dpdk options:dpdk-devargs=0000:01:00.1",
+			},
+		},
+		{
+			desc: "all options",
+			o: BondOptions{
+				BondMode:       "balance-slb",
+				LACP:           "off",
+				LACPTime:       "fast",
+				LACPFallbackAB: "true",
+				Members: map[string]InterfaceOptions{
+					"dpdk0": {
+						Type:        InterfaceTypeDPDK,
+						DPDKDevArgs: "0000:01:00.0",
+					},
+					"dpdk1": {
+						Type:        InterfaceTypeDPDK,
+						DPDKDevArgs: "0000:01:00.1",
+					},
+				},
+			},
+			out: []string{
+				"dpdk0",
+				"dpdk1",
+				"bond_mode=balance-slb",
+				"lacp=off",
+				"other_config:lacp-time=fast",
+				"other_config:lacp-fallback-ab=true",
+				"-- set Interface dpdk0 type=dpdk options:dpdk-devargs=0000:01:00.0",
+				"-- set Interface dpdk1 type=dpdk options:dpdk-devargs=0000:01:00.1",
+			},
 		},
 	}
 
