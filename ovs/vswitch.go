@@ -17,6 +17,8 @@ package ovs
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 )
 
@@ -46,6 +48,27 @@ type VSwitchService struct {
 // not already exist.
 func (v *VSwitchService) AddBridge(bridge string) error {
 	_, err := v.exec("--may-exist", "add-br", bridge)
+	return err
+}
+// AddBond attaches a bond to a bridge on Open vSwitch.  The ports may or may
+// not already exist.
+func (v *VSwitchService) AddBond(bridge string, bond string, ports ...string) error {
+	args := []string{"--may-exist", "add-bond", bridge, bond}
+	args = append(args, ports...)
+	_, err := v.exec(args...)
+	return err
+}
+
+// AddBondWithOptions attaches a bond to a bridge on Open vSwitch.  The ports may or may
+// not already exist. extraArgs is used to pass additional arguments,
+// like "-- set interface <port> type=dpdk options:dpdk-devargs=<pci-address>"
+func (v *VSwitchService) AddBondWithOptions(bridge string, bond string, options BondOptions) error {
+	args := []string{"--may-exist", "add-bond", bridge, bond}
+
+	// pass additional arguments
+	args = append(args, options.slice()...)
+
+	_, err := v.exec(args...)
 	return err
 }
 
@@ -218,6 +241,89 @@ func (o BridgeOptions) slice() []string {
 
 	if len(o.Protocols) > 0 {
 		s = append(s, fmt.Sprintf("protocols=%s", strings.Join(o.Protocols, ",")))
+	}
+
+	return s
+}
+
+// Bond sets configuration for a bond using the values from a BondOptions
+// struct.
+func (v *VSwitchSetService) Bond(bond string, options BondOptions) error {
+	// Prepend command line arguments before expanding options slice
+	// and appending it
+	args := []string{"set", "bond", bond}
+	args = append(args, options.slice()...)
+
+	_, err := v.v.exec(args...)
+	return err
+}
+
+// A BondOptions struct enables configuration of a Bond.
+type BondOptions struct {
+	// See: https://docs.redhat.com/en/documentation/red_hat_openstack_platform/8/html/director_installation_and_usage/appe-bonding_options
+
+	// BondMode specifies the bond mode.
+	// [balance-slb / balance-tcp / active-backup]
+	BondMode string
+
+	// LACP specifies the LACP mode.
+	// [active / passive / off]
+	LACP string
+
+	// LACPTime specifies the LACP heartbeat to 1 second (fast) or 30 seconds (slow)
+	// [fast / slow]
+	LACPTime string
+
+	// LACPFallbackAB specifies the LACP behavior to switch to bond_mode=active-backup as a fallback.
+	// [true / false]
+	LACPFallbackAB string
+
+	// Members specifies the members interfaces of the bond.
+	Members map[string]InterfaceOptions
+
+	// Options specifies additional a to be set on the bond.
+	// format: ["option1=value1", "option2=value2", ...]
+	Options []string
+}
+
+// slice creates a string slice containing any non-zero option values from the
+// struct in the format expected by Open vSwitch.
+func (o BondOptions) slice() []string {
+	var s []string
+	// 1. option field must between <InterfaceName> and <Set Interface>
+	// 2. members can be out-of-order, but in-order can improve readability
+	// example: ovs-vsctl --no-wait add-bond br0-ovs dpdkbond0
+	// dpdk0 dpdk1
+	// lacp=active
+	// -- set Interface dpdk0 type=dpdk options:dpdk-devargs=0000:00:10.0
+	// -- set Interface dpdk1 type=dpdk options:dpdk-devargs=0000:00:10.1
+
+	keys := slices.Sorted(maps.Keys(o.Members))
+	s = append(s, keys...)
+
+	if o.BondMode != "" {
+		s = append(s, fmt.Sprintf("bond_mode=%s", o.BondMode))
+	}
+
+	if o.LACP != "" {
+		s = append(s, fmt.Sprintf("lacp=%s", o.LACP))
+	}
+
+	if o.LACPTime != "" {
+		s = append(s, fmt.Sprintf("other_config:lacp-time=%s", o.LACPTime))
+	}
+
+	if o.LACPFallbackAB != "" {
+		s = append(s, fmt.Sprintf("other_config:lacp-fallback-ab=%s", o.LACPFallbackAB))
+	}
+
+	for _, name := range keys {
+		opt := o.Members[name].slice()
+		s = append(s, fmt.Sprintf("-- set Interface %s %s", name, strings.Join(opt, " ")))
+	}
+
+	if len(o.Options) > 0 {
+		s = append(s, fmt.Sprintf("options=%s", strings.Join(o.Options, ",")))
 	}
 
 	return s
