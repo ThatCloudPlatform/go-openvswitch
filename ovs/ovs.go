@@ -34,11 +34,13 @@ type InterfaceType string
 
 // InterfaceType constants which can be used in OVS configurations.
 const (
-	InterfaceTypeGRE      InterfaceType = "gre"
-	InterfaceTypeInternal InterfaceType = "internal"
-	InterfaceTypePatch    InterfaceType = "patch"
-	InterfaceTypeSTT      InterfaceType = "stt"
-	InterfaceTypeVXLAN    InterfaceType = "vxlan"
+	InterfaceTypeGRE                 InterfaceType = "gre"
+	InterfaceTypeInternal            InterfaceType = "internal"
+	InterfaceTypePatch               InterfaceType = "patch"
+	InterfaceTypeSTT                 InterfaceType = "stt"
+	InterfaceTypeVXLAN               InterfaceType = "vxlan"
+	InterfaceTypeDPDK                InterfaceType = "dpdk"
+	InterfaceTypeDPDKVhostUserClient InterfaceType = "dpdkvhostuserclient"
 )
 
 // A PortAction is a port actions to change the port characteristics of the
