@@ -53,7 +53,11 @@ func (v *VSwitchService) AddBridge(bridge string) error {
 
 func (v *VSwitchService) AddBridgeWithOptions(bridge string, options BridgeOptions) error {
 	args := []string{"--may-exist", "add-br", bridge}
+
+	// pass additional arguments
+	args = append(args, "--", "set", "Bridge", bridge)
 	args = append(args, options.slice()...)
+
 	_, err := v.exec(args...)
 	return err
 }
@@ -72,8 +76,11 @@ func (v *VSwitchService) AddBond(bridge string, bond string, ports ...string) er
 // like "-- set interface <port> type=dpdk options:dpdk-devargs=<pci-address>"
 func (v *VSwitchService) AddBondWithOptions(bridge string, bond string, options BondOptions) error {
 	args := []string{"--may-exist", "add-bond", bridge, bond}
+	membersName := slices.Sorted(maps.Keys(options.Members))
+	args = append(args, membersName...)
 
 	// pass additional arguments
+	args = append(args, "--", "set", "Port", bond)
 	args = append(args, options.slice()...)
 
 	_, err := v.exec(args...)
@@ -89,7 +96,11 @@ func (v *VSwitchService) AddPort(bridge string, port string) error {
 
 func (v *VSwitchService) AddPortWithOptions(bridge string, port string, options InterfaceOptions) error {
 	args := []string{"--may-exist", "add-port", bridge, port}
+
+	// pass additional arguments
+	args = append(args, "--", "set", "Interface", port)
 	args = append(args, options.slice()...)
+
 	_, err := v.exec(args...)
 	return err
 }
