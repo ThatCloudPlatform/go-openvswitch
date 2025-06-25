@@ -253,7 +253,7 @@ type BridgeOptions struct {
 	Protocols []string
 
 	// Options specifies additional options to be set on the bridge.
-	// format: ["option1=value1", "option2=value2", ...]
+	// format: ["option1=value1" "option2=value2" ...]
 	Options []string
 }
 
@@ -264,6 +264,10 @@ func (o BridgeOptions) slice() []string {
 
 	if len(o.Protocols) > 0 {
 		s = append(s, fmt.Sprintf("protocols=%s", strings.Join(o.Protocols, ",")))
+	}
+
+	if len(o.Options) > 0 {
+		s = append(s, fmt.Sprintf("%s", strings.Join(o.Options, " ")))
 	}
 
 	return s
@@ -305,7 +309,7 @@ type BondOptions struct {
 	Members map[string]InterfaceOptions
 
 	// Options specifies additional a to be set on the bond.
-	// format: ["option1=value1", "option2=value2", ...]
+	// format: ["option1=value1" "option2=value2" ...]
 	Options []string
 }
 
@@ -320,9 +324,6 @@ func (o BondOptions) slice() []string {
 	// lacp=active
 	// -- set Interface dpdk0 type=dpdk options:dpdk-devargs=0000:00:10.0
 	// -- set Interface dpdk1 type=dpdk options:dpdk-devargs=0000:00:10.1
-
-	keys := slices.Sorted(maps.Keys(o.Members))
-	s = append(s, keys...)
 
 	if o.BondMode != "" {
 		s = append(s, fmt.Sprintf("bond_mode=%s", o.BondMode))
@@ -340,13 +341,14 @@ func (o BondOptions) slice() []string {
 		s = append(s, fmt.Sprintf("other_config:lacp-fallback-ab=%s", o.LACPFallbackAB))
 	}
 
+	if len(o.Options) > 0 {
+		s = append(s, fmt.Sprintf("%s", strings.Join(o.Options, " ")))
+	}
+
+	keys := slices.Sorted(maps.Keys(o.Members))
 	for _, name := range keys {
 		opt := o.Members[name].slice()
 		s = append(s, fmt.Sprintf("-- set Interface %s %s", name, strings.Join(opt, " ")))
-	}
-
-	if len(o.Options) > 0 {
-		s = append(s, fmt.Sprintf("options=%s", strings.Join(o.Options, ",")))
 	}
 
 	return s
